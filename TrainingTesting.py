@@ -4,7 +4,10 @@ from snntorch import utils
 import numpy as np
 import logging
 import torch as th
-from utils import *
+from utils import get_device
+from itertools import product
+from Models import *
+import copy
 
 logger = logging.getLogger('MSP_Project')
 device = get_device()
@@ -46,6 +49,7 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
   kfold = KFold(n_splits=k, shuffle=True)
   results = {} # keep track of accuracies, probably we'll want to track f1 as well
 
+  loss_record = []
   for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     print(f'FOLD {fold}')
     print('--------------------------------')
@@ -68,12 +72,14 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
       optimizer = th.optim.Adam(model.parameters())
 
     # Run the training loop for defined number of epochs
+    training_loss_at_fold = []
     for epoch in range(0, num_epochs):
 
       # Print epoch
       print(f'Starting epoch {epoch+1}')
 
       # Set current loss value
+      total_loss_for_epoch = 0.0
       current_loss = 0.0
       model.train()
       # Iterate over the DataLoader for training data
@@ -95,7 +101,7 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
           loss += loss_function(spk_rec, targets)
         else:
           outputs = model(inputs)
-          loss = loss_function(outputs, targets)
+          loss += loss_function(outputs, targets)
 
         if verbose:
           print_batch_accuracy(model, inputs, targets, train=True, spiking=spiking)
@@ -109,11 +115,14 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
 
         # Print statistics
         current_loss += loss.item()
+        total_loss_for_epoch += loss.item()
         if i % 10 == 9:
             if verbose:
                 print('Loss after mini-batch %5d: %.3f' %
                       (i + 1, current_loss / 10))
             current_loss = 0.0
+      training_loss_at_fold.append(total_loss_for_epoch/len(trainloader))
+      loss_record.append(training_loss_at_fold)
 
     # Process is complete.
     #print('Training process has finished. Saving trained model.')
@@ -165,4 +174,45 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
     sum += value
   average = sum / len(results.items())
   print(f'Average: {average} %')
-  return average
+  return average, loss_record
+
+def hyperparameter_search(train_set, using_mnist=False, spiking_model=True, num_epochs=5, batch_size=16, k=10):
+    device = get_device()
+    learning_rates = [1e-3, 1e-4, 1e-5]
+    weight_decays = [1e-3, 1e-4, 1e-5]
+
+    hyperparameter_types = [learning_rates, weight_decays]
+    if spiking_model:
+        betas = [0.5, 0.8, 0.9]
+        hyperparameter_types.append(betas)
+    
+    hyperparameter_combinations = list(product(*hyperparameter_types))
+    logger.debug(f"Hyperparameter combinations: {hyperparameter_combinations}")
+
+    best_accuracy = 0
+    best_hyperparameters = None
+    best_models_loss_record = None
+    best_model = None
+    
+    for i, hyperparameter in enumerate(hyperparameter_combinations):
+        logger.debug(f"Hyperparameter combination {i+1}/{len(hyperparameter_combinations)}: {hyperparameter}")
+        learning_rate = hyperparameter[0]
+        weight_decay = hyperparameter[1]
+        if spiking_model:
+            beta = hyperparameter[2]
+            model = SpikingCNN(using_mnist=using_mnist, beta=beta)
+        else:
+            model = PyTorchCNN(using_mnist=using_mnist)
+        model = model.to(device)
+        optimizer = th.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        mean_accuracy, loss_record = k_fold_cross_validation(train_set, model, k=k, num_epochs=num_epochs, optimizer=optimizer, batch_size=batch_size, verbose=True)
+        logger.debug(f"Mean accuracy: {mean_accuracy}")
+        if mean_accuracy > best_accuracy:
+            best_accuracy = mean_accuracy
+            best_hyperparameters = hyperparameter
+            best_models_loss_record = loss_record
+            best_model = copy.deepcopy(model)
+
+    logger.debug(f"Best hyperparameters: {best_hyperparameters}")
+    logger.debug(f"Best accuracy: {best_accuracy}")
+    return best_hyperparameters, best_accuracy, best_models_loss_record, best_model

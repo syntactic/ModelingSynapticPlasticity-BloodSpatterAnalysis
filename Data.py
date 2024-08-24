@@ -3,6 +3,7 @@ import gdown, shutil, os, logging
 from Transformations import *
 from BloodDataset import BloodDataset
 from torch.utils.data import random_split
+import torch as th
 
 BLOOD_DATASET_FILENAME = 'full_dataset.zip'
 FILE_ID = "1XwfVHx4IU4srDZJLiCFLY8-3UtnwOWxQ"
@@ -16,6 +17,21 @@ def download_data(in_colab=False, using_mnist=False, data_dir='./'):
     else:
         gdown.download(id=FILE_ID)
         shutil.unpack_archive(BLOOD_DATASET_FILENAME, data_dir)
+
+def calculate_mean_and_std(train_set):
+    loader = th.utils.data.DataLoader(train_set, batch_size=1, shuffle=True)
+    mean = 0.
+    std = 0.
+    nb_samples = 0.
+    for data, _ in loader:
+        batch_samples = data.size(0)
+        data = data.view(batch_samples, data.size(1), -1)
+        mean += data.mean(2).sum(0)
+        std += data.std(2).sum(0)
+        nb_samples += batch_samples
+    mean /= nb_samples
+    std /= nb_samples
+    return mean, std
 
 def get_datasets(in_colab=False, using_mnist=False):
     if in_colab:
@@ -34,8 +50,11 @@ def get_datasets(in_colab=False, using_mnist=False):
         train_set = datasets.MNIST(data_dir, train=True, download=True, transform=mnist_transform)
         test_set = datasets.MNIST(data_dir, train=False, download=True, transform=mnist_transform)
     else:
+        throwaway_blood_dataset = BloodDataset(data_dir, init_transform=resize_transform,
+                                                transform=preprocessing_no_normalize)
+        mean, std = calculate_mean_and_std(throwaway_blood_dataset)
         full_blood_dataset = BloodDataset(data_dir, init_transform=resize_transform, 
-                                          transform=preprocessing, augmentations=augmentations)
+                                          transform=generate_preprocessing_transforms(mean, std), augmentations=augmentations)
         representative_test_set = False
         class_percentages = get_class_percentages(full_blood_dataset)
         while not representative_test_set:
