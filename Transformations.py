@@ -9,7 +9,7 @@ augmentations = [
     transforms.RandomRotation(30),
     transforms.RandomHorizontalFlip(p=1),
     transforms.RandomResizedCrop(IMG_SIZE, scale=(0.8, 1.0)),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2)
+    #transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2)
 ]
 
 resize_transform = transforms.Resize((IMG_SIZE, IMG_SIZE))

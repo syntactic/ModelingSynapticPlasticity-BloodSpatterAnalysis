@@ -19,3 +19,8 @@ def smooth_k_fold_loss_record(loss_record):
         epoch_losses = [loss_record[fold][epoch] for fold in range(num_folds)]
         smooth_k_fold_loss_record.append(sum(epoch_losses) / num_folds)
     return smooth_k_fold_loss_record
+
+def is_spiking(model):
+    return 'Spiking' in model.__class__.__name__
+
+device = get_device()

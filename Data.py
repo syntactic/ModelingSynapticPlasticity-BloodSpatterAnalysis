@@ -70,13 +70,19 @@ def get_datasets(in_colab=False, using_mnist=False):
     logger.debug(str(len(test_set)) + " images in test set.")
     return train_set, test_set
         
-def get_classes(dataset):
+def get_classes(dataset, from_original=False):
+    if from_original:
+        return sorted(dataset.dataset.class_to_idx.keys())
     class_counts = get_class_counts(dataset)
     return sorted(class_counts.keys())
 
 def get_class_counts(dataset):
+    original_dataset = dataset.dataset if hasattr(dataset, 'dataset') else dataset
+    class_to_idx = original_dataset.class_to_idx.items()
+    idx_to_class = {v: k for k, v in class_to_idx}
     class_counts = {}
     for _, label in dataset:
+        label = idx_to_class[label]
         if label not in class_counts:
             class_counts[label] = 0
         class_counts[label] += 1
@@ -87,12 +93,13 @@ def get_class_percentages(dataset):
     class_percentages = {}
     for label, count in class_counts.items():
         class_percentages[label] = count / len(dataset)
+    logger.debug("Class percentages: " + str(class_percentages))
     return class_percentages
 
 def matches_proportions(test_set, class_percentages, tolerance=0.1):
-    num_classes = len(class_percentages) # induce number of classes from class_percentages
+    classes = get_classes(test_set, from_original=True)
     test_class_percentages = get_class_percentages(test_set)
-    for label in range(num_classes):
+    for label in classes:
         if abs(test_class_percentages[label] - class_percentages[label]) > tolerance:
             return False
     return True

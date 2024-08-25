@@ -1,16 +1,16 @@
 from sklearn.model_selection import KFold
+from sklearn.metrics import roc_auc_score, roc_curve
 from snntorch.functional.loss import ce_count_loss, ce_rate_loss
 from snntorch import utils
 import numpy as np
 import logging
 import torch as th
-from utils import get_device
+from utils import device, is_spiking
 from itertools import product
 from Models import *
 import copy
 
 logger = logging.getLogger('MSP_Project')
-device = get_device()
 
 def print_batch_accuracy(model, data, targets, train=False, spiking=True):
     if spiking:
@@ -39,9 +39,7 @@ def reset_weights(model, verbose=False):
 
 # this function is based on https://github.com/christianversloot/machine-learning-articles/blob/main/how-to-use-k-fold-cross-validation-with-pytorch.md
 def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, batch_size=16, verbose=False):
-  spiking = False
-  if 'Spiking' in model.__class__.__name__:
-    spiking = True
+  spiking = is_spiking(model)
   if spiking:
     loss_function = ce_rate_loss()
   else:
@@ -179,7 +177,7 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
 def hyperparameter_search(train_set, using_mnist=False, spiking_model=True, num_epochs=5, batch_size=16, k=10):
     device = get_device()
     learning_rates = [1e-3, 1e-4, 1e-5]
-    weight_decays = [1e-3, 1e-4, 1e-5]
+    weight_decays = [0, 1e-3, 1e-4]
 
     hyperparameter_types = [learning_rates, weight_decays]
     if spiking_model:
@@ -216,3 +214,109 @@ def hyperparameter_search(train_set, using_mnist=False, spiking_model=True, num_
     logger.debug(f"Best hyperparameters: {best_hyperparameters}")
     logger.debug(f"Best accuracy: {best_accuracy}")
     return best_hyperparameters, best_accuracy, best_models_loss_record, best_model
+
+def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_size=16, verbose=False):
+    spiking = is_spiking(model)
+    if spiking:
+        loss_function = ce_rate_loss()
+    else:
+        loss_function = th.nn.CrossEntropyLoss()
+    trainloader = th.utils.data.DataLoader(
+                      train_set,
+                      batch_size=batch_size)
+   
+    if optimizer is None:
+        optimizer = th.optim.Adam(model.parameters())
+
+    training_losses, training_accuracies, testing_losses, testing_accuracies = [], [], [], []
+    for epoch in range(0, num_epochs):
+        training_loss = 0.0
+        training_accuracy = 0.0
+        total, correct = 0, 0
+        model.train()
+        for _, data in enumerate(trainloader, 0):
+            inputs, targets = data
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+            loss = 0.0
+
+            optimizer.zero_grad()
+            if spiking:
+                spk_rec, mem_rec = model(inputs)
+                loss += loss_function(spk_rec, targets)
+                _, predicted = spk_rec.sum(dim=0).max(1)
+            else:
+                outputs = model(inputs)
+                loss += loss_function(outputs, targets)
+                _, predicted = th.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += (predicted == targets).sum().item()
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            training_loss += loss.item()
+        training_accuracy = 100 * correct / total
+        training_loss /= len(trainloader)
+        training_accuracies.append(training_accuracy)
+        training_losses.append(training_loss)
+        if verbose:
+            print(f"Epoch {epoch+1} loss: {training_loss:.2f}, accuracy: {training_accuracy:.2f}%")
+        testing_loss = 0.0
+        testing_accuracy = 0.0
+        total, correct = 0, 0
+        model.eval()
+        with th.no_grad():
+            testloader = th.utils.data.DataLoader(test_set, batch_size=batch_size)
+            for i, data in enumerate(testloader, 0):
+                inputs, targets = data
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+                if spiking:
+                    test_spk, _ = model(inputs)
+                    testing_loss += loss_function(test_spk, targets)
+                    _, predicted = test_spk.sum(dim=0).max(1)
+                else:
+                    outputs = model(inputs)
+                    testing_loss += loss_function(outputs, targets)
+                    _, predicted = th.max(outputs.data, 1)
+                total += targets.size(0)
+                correct += (predicted == targets).sum().item()
+            testing_accuracy = 100 * correct / total
+            testing_loss /= len(testloader)
+            testing_loss = testing_loss.item()
+            testing_accuracies.append(testing_accuracy)
+            testing_losses.append(testing_loss)
+            if verbose:
+                print(f"Epoch {epoch+1} test loss: {testing_loss:.2f}, accuracy: {testing_accuracy:.2f}%")
+
+    return training_losses, training_accuracies, testing_losses, testing_accuracies
+
+def get_roc_metrics(model, test_data, batch_size=16):
+    spiking = is_spiking
+    model.eval()
+    with th.no_grad():
+        testloader = th.utils.data.DataLoader(test_data, batch_size=batch_size)
+        all_targets = []
+        all_probabilities_or_spike_counts = []
+        for i, data in enumerate(testloader, 0):
+            inputs, targets = data
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+            if spiking:
+                test_spk, _ = model(inputs)
+                # sum spikes over all time steps for each class
+                probabilities = test_spk.sum(dim=0)
+            else:
+                outputs = model(inputs)
+                probabilities = th.nn.functional.softmax(outputs, dim=1)
+            all_targets.append(targets)
+            # grab just the probabilities for the positive class
+            probabilities = probabilities[:, 1]
+            all_probabilities_or_spike_counts.append(probabilities)
+        all_targets = th.cat(all_targets)
+        all_probabilities_or_spike_counts = th.cat(all_probabilities_or_spike_counts)
+
+        fpr, tpr, thresholds = roc_curve(all_targets.cpu().numpy(), all_probabilities_or_spike_counts.cpu().numpy())
+        auc = roc_auc_score(all_targets.cpu().numpy(), all_probabilities_or_spike_counts.cpu().numpy())
+        return fpr, tpr, thresholds, auc

@@ -68,3 +68,38 @@ class SpikingCNN(PyTorchCNN):
             mem4_rec.append(mem2)
 
         return th.stack(spk4_rec, dim=0), th.stack(mem4_rec, dim=0)
+    
+class SpikingCNNSerial(SpikingCNN):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.lif3 = snn.Leaky(beta=kwargs['beta'])
+        self.lif4 = snn.Leaky(beta=kwargs['beta'])
+        self.fc2 = nn.Linear(120, self.num_classes)
+        
+    def forward(self, x):
+        batch_size = x.shape[0]
+        spk4_rec = []
+        mem4_rec = []
+
+        # Initialize hidden states and outputs at t=0
+        mem1 = self.lif1.init_leaky()
+        mem2 = self.lif2.init_leaky()
+        mem3 = self.lif3.init_leaky()
+        mem4 = self.lif4.init_leaky()
+
+        for _ in range(self.num_steps):
+            cur1 = self.pool(self.conv1(x))
+            spk1, mem1 = self.lif1(cur1, mem1)
+
+            cur2 = self.pool(self.conv2(spk1))
+            spk2, mem2 = self.lif2(cur2, mem2)
+
+            cur3 = self.fc1(spk2.view(batch_size, -1))
+            spk3, mem3 = self.lif3(cur3, mem3)
+            cur4 = self.fc2(spk3)
+            spk4, mem4 = self.lif4(cur4, mem4)
+            spk4_rec.append(spk4)
+            mem4_rec.append(mem4)
+
+        return th.stack(spk4_rec, dim=0), th.stack(mem4_rec, dim=0)
+   

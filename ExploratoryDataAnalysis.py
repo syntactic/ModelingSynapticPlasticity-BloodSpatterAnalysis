@@ -47,13 +47,14 @@ def run_eda(dataset):
 
     # Calculate class counts
     class_counts = get_class_counts(dataset)
-    logger.debug("Dataset classes:" + str(dataset.classes))
+    classes_sorted = get_classes(dataset)
+    logger.debug("Dataset classes:" + str(classes_sorted))
     # get class counts sorted by class name numerically
-    classes_sorted = sorted(class_counts.keys(), key=lambda x: int(x))
-    class_counts = [class_counts[cls] for cls in classes_sorted]
+    #classes_sorted = sorted(class_counts.keys(), key=lambda x: int(x))
+    #class_counts = [class_counts[cls] for cls in classes_sorted]
     logger.debug("Class Counts: " + str(class_counts))
     
-    plt.bar(dataset.classes, class_counts)
+    plt.bar(classes_sorted, [class_counts[cls] for cls in classes_sorted])
     plt.title('Class Distribution in Dataset')
     plt.xlabel('Class')
     plt.ylabel('Number of Images')
