@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from sklearn.Metrics import RocCurveDisplay
+from sklearn.metrics import RocCurveDisplay
 
 def plot_loss(losses):
     plt.plot(losses)
@@ -36,4 +36,28 @@ def plot_roc_curve(fpr, tpr, auc_scores):
                                   estimator_name='example estimator')
 
     display.plot()
+    plt.show()
+
+# the following function was taken from the course's LIF notebook
+def plot_network_activity(voltage, spikes, name=None):
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+    if name is not None:
+        fig.suptitle(name, fontsize=16)
+    h, w = voltage.shape
+
+    im_voltage = ax[0].imshow(voltage)
+    ax[0].set_title("Voltage", fontsize=14)
+    ax[0].set_ylabel("Neurons", fontsize=14)
+    ax[0].set_xlabel("Time [ms]")
+    ax[0].set_aspect(w / h)
+    fig.colorbar(im_voltage, ax=ax[0])
+
+    im_spikes = ax[1].imshow(spikes)
+    ax[1].imshow(spikes)
+    ax[1].set_title("Firing activity", fontsize=14)
+    ax[1].set_ylabel("Neurons", fontsize=14)
+    ax[1].set_xlabel("Time [ms]")
+    ax[1].set_aspect(w / h)
+
+    fig.tight_layout()
     plt.show()

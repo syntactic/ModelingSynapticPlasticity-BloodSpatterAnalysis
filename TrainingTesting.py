@@ -175,7 +175,6 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
   return average, loss_record
 
 def hyperparameter_search(train_set, using_mnist=False, spiking_model=True, num_epochs=5, batch_size=16, k=10):
-    device = get_device()
     learning_rates = [1e-3, 1e-4, 1e-5]
     weight_decays = [0, 1e-3, 1e-4]
 
@@ -242,7 +241,7 @@ def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_si
 
             optimizer.zero_grad()
             if spiking:
-                spk_rec, mem_rec = model(inputs)
+                spk_rec = model(inputs)[0]
                 loss += loss_function(spk_rec, targets)
                 _, predicted = spk_rec.sum(dim=0).max(1)
             else:
@@ -273,7 +272,7 @@ def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_si
                 inputs = inputs.to(device)
                 targets = targets.to(device)
                 if spiking:
-                    test_spk, _ = model(inputs)
+                    test_spk = model(inputs)[0]
                     testing_loss += loss_function(test_spk, targets)
                     _, predicted = test_spk.sum(dim=0).max(1)
                 else:
@@ -304,7 +303,7 @@ def get_roc_metrics(model, test_data, batch_size=16):
             inputs = inputs.to(device)
             targets = targets.to(device)
             if spiking:
-                test_spk, _ = model(inputs)
+                test_spk = model(inputs)[0]
                 # sum spikes over all time steps for each class
                 probabilities = test_spk.sum(dim=0)
             else:
@@ -320,3 +319,11 @@ def get_roc_metrics(model, test_data, batch_size=16):
         fpr, tpr, thresholds = roc_curve(all_targets.cpu().numpy(), all_probabilities_or_spike_counts.cpu().numpy())
         auc = roc_auc_score(all_targets.cpu().numpy(), all_probabilities_or_spike_counts.cpu().numpy())
         return fpr, tpr, thresholds, auc
+    
+def run_spiking_inference(model, data_point):
+    model.eval()
+    with th.no_grad():
+        data_point = data_point.to(device)
+        spk_rec4, mem_rec_4, spk_rec_3, mem_rec_3 = model(data_point)
+        _, predicted = spk_rec4.sum(dim=0).max(1)
+        return predicted.item(), spk_rec4, mem_rec_4, spk_rec_3, mem_rec_3

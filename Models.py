@@ -79,6 +79,8 @@ class SpikingCNNSerial(SpikingCNN):
     def forward(self, x):
         batch_size = x.shape[0]
         spk4_rec = []
+        spk3_rec = []
+        mem3_rec = []
         mem4_rec = []
 
         # Initialize hidden states and outputs at t=0
@@ -100,6 +102,9 @@ class SpikingCNNSerial(SpikingCNN):
             spk4, mem4 = self.lif4(cur4, mem4)
             spk4_rec.append(spk4)
             mem4_rec.append(mem4)
+            spk3_rec.append(spk3)
+            mem3_rec.append(mem3)
 
-        return th.stack(spk4_rec, dim=0), th.stack(mem4_rec, dim=0)
+        # return spikes and membrane potentials of last two leaky integrators
+        return th.stack(spk4_rec, dim=0), th.stack(mem4_rec, dim=0), th.stack(spk3_rec, dim=0), th.stack(mem3_rec, dim=0)
    
