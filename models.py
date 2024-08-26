@@ -19,8 +19,8 @@ class PyTorchCNN(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, conv_layer_kernel_size)
         self.fc1 = nn.Linear(self.fully_connected_input_size, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, self.num_classes)
+        self.fc2 = nn.Linear(120, self.num_classes)
+        #self.fc3 = nn.Linear(84, self.num_classes)
 
     def forward(self, x):
         batch_size = x.shape[0]
@@ -31,8 +31,8 @@ class PyTorchCNN(nn.Module):
         else:
           x = x.view(batch_size, -1)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        #x = F.relu(self.fc2(x))
+        x = self.fc2(x)
         return x
     
 class SpikingCNN(PyTorchCNN):

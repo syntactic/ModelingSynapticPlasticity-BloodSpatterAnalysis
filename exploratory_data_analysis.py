@@ -3,7 +3,7 @@ import numpy as np
 import torchvision
 import logging
 from torch.utils.data import DataLoader
-from Data import get_class_counts, get_classes
+from data import get_class_counts, get_classes
 
 logger = logging.getLogger('MSP_Project')
 

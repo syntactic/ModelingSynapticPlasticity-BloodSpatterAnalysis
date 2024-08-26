@@ -1,12 +1,12 @@
 import os, logging
-from Transformations import *
+from transformations import *
 from BloodDataset import BloodDataset
-from Data import get_datasets
+from data import get_datasets
 import numpy as np
 import torch as th
-from Models import *
+from models import *
 from utils import *
-from TrainingTesting import hyperparameter_search
+from training_testing import hyperparameter_search
 
 if __name__ == '__main__':
     np.random.seed(0)

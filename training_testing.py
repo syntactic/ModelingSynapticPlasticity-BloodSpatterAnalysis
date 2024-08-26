@@ -7,7 +7,7 @@ import logging
 import torch as th
 from utils import device, is_spiking
 from itertools import product
-from Models import *
+from models import *
 import copy
 
 logger = logging.getLogger('MSP_Project')
