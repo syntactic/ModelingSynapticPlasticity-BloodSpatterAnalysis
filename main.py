@@ -1,6 +1,5 @@
 import os, logging
 from transformations import *
-from BloodDataset import BloodDataset
 from data import get_datasets
 import numpy as np
 import torch as th
