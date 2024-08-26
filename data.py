@@ -1,6 +1,6 @@
 from torchvision import datasets
 import gdown, shutil, os, logging
-from Transformations import *
+from transformations import *
 from BloodDataset import BloodDataset
 from torch.utils.data import random_split
 import torch as th
