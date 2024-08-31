@@ -8,8 +8,7 @@ augmentations = [
     lambda x: x,
     transforms.RandomRotation(30),
     transforms.RandomHorizontalFlip(p=1),
-    transforms.RandomResizedCrop(IMG_SIZE, scale=(0.8, 1.0)),
-    #transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2)
+    transforms.RandomResizedCrop(IMG_SIZE, scale=(0.8, 1.0))
 ]
 
 resize_transform = transforms.Resize((IMG_SIZE, IMG_SIZE))
@@ -26,13 +25,6 @@ def generate_preprocessing_transforms(mean, std):
         transforms.ToTensor(), # Convert PIL Image to Tensor
         transforms.Normalize(mean=mean, std=std)
     ])
-
-
-# Preprocessing without tensor and normalization
-preprocessing_no_tensor_no_normalize = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.Grayscale(num_output_channels=1),
-])
 
 mnist_transform = transforms.Compose([
             transforms.Resize((28, 28)),
