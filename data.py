@@ -9,7 +9,7 @@ BLOOD_DATASET_FILENAME = 'full_dataset.zip'
 FILE_ID = "1XwfVHx4IU4srDZJLiCFLY8-3UtnwOWxQ"
 logger = logging.getLogger('MSP_Project')
 
-def download_data(in_colab=False, using_mnist=False, data_dir='./'):
+def download_data(using_mnist=False, data_dir='./'):
     if using_mnist:
         data_dir = os.path.join(data_dir, 'tmp', 'data', 'mnist')
         if not os.path.exists(data_dir):
@@ -33,18 +33,15 @@ def calculate_mean_and_std(train_set):
     std /= nb_samples
     return mean, std
 
-def get_datasets(in_colab=False, using_mnist=False):
-    if in_colab:
-        data_dir = '/'
-    else:
-        data_dir = './'
+def get_datasets(using_mnist=False):
+    data_dir = './'
     if using_mnist:
         data_dir = os.path.join(data_dir, 'tmp', 'data', 'mnist')
     else:
         data_dir = os.path.join(data_dir, 'full_dataset')
     logger.debug("Data directory: " + data_dir)
     if not os.path.exists(data_dir):
-        download_data(in_colab, using_mnist, data_dir)
+        download_data(using_mnist, data_dir)
 
     if using_mnist:
         train_set = datasets.MNIST(data_dir, train=True, download=True, transform=mnist_transform)

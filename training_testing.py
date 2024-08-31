@@ -22,9 +22,9 @@ def print_batch_accuracy(model, data, targets, train=False, spiking=True):
     acc = np.mean((targets == idx).detach().cpu().numpy())
 
     if train:
-        print(f"Train set accuracy for a single minibatch: {acc*100:.2f}%")
+        logger.debug(f"Train set accuracy for a single minibatch: {acc*100:.2f}%")
     else:
-        print(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
+        logger.debug(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
 
 def reset_weights(model, verbose=False):
   '''
@@ -34,7 +34,7 @@ def reset_weights(model, verbose=False):
   for layer in model.children():
     if hasattr(layer, 'reset_parameters'):
         if verbose:
-            print(f'Reset trainable parameters of layer = {layer}')
+            logger.debug(f'Reset trainable parameters of layer = {layer}')
         layer.reset_parameters()
 
 # this function is based on https://github.com/christianversloot/machine-learning-articles/blob/main/how-to-use-k-fold-cross-validation-with-pytorch.md
@@ -116,7 +116,7 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
         total_loss_for_epoch += loss.item()
         if i % 10 == 9:
             if verbose:
-                print('Loss after mini-batch %5d: %.3f' %
+                logger.debug('Loss after mini-batch %5d: %.3f' %
                       (i + 1, current_loss / 10))
             current_loss = 0.0
       training_loss_at_fold.append(total_loss_for_epoch/len(trainloader))
@@ -260,7 +260,7 @@ def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_si
         training_accuracies.append(training_accuracy)
         training_losses.append(training_loss)
         if verbose:
-            print(f"Epoch {epoch+1} loss: {training_loss:.2f}, accuracy: {training_accuracy:.2f}%")
+            logger.info(f"Epoch {epoch+1} training loss: {training_loss:.2f}, accuracy: {training_accuracy:.2f}%")
         testing_loss = 0.0
         testing_accuracy = 0.0
         total, correct = 0, 0
@@ -287,7 +287,7 @@ def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_si
             testing_accuracies.append(testing_accuracy)
             testing_losses.append(testing_loss)
             if verbose:
-                print(f"Epoch {epoch+1} test loss: {testing_loss:.2f}, accuracy: {testing_accuracy:.2f}%")
+                logger.info(f"Epoch {epoch+1} testing loss: {testing_loss:.2f}, accuracy: {testing_accuracy:.2f}%")
 
     return training_losses, training_accuracies, testing_losses, testing_accuracies
 
