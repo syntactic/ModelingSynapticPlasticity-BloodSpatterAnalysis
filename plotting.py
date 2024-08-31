@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import RocCurveDisplay
 
 def plot_loss(losses):
+    """
+    Plots the loss values over epochs.
+    Parameters:
+        losses (list): A list of loss values.
+    """
     plt.plot(losses)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
@@ -9,6 +14,14 @@ def plot_loss(losses):
     plt.show()
 
 def plot_training_testing_metrics(train_losses, train_accuracies, test_losses, test_accuracies):
+    """
+    Plots the training and testing metrics (loss and accuracy) over epochs.
+    Parameters:
+        train_losses (list): List of training losses for each epoch.
+        train_accuracies (list): List of training accuracies for each epoch.
+        test_losses (list): List of testing losses for each epoch.
+        test_accuracies (list): List of testing accuracies for each epoch.
+    """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     # Plot losses
@@ -31,6 +44,14 @@ def plot_training_testing_metrics(train_losses, train_accuracies, test_losses, t
     plt.show()
 
 def plot_roc_curve(fpr, tpr, auc_scores):
+    """
+    Plots the Receiver Operating Characteristic (ROC) curve.
+    Parameters:
+        fpr (array-like): False Positive Rate values.
+        tpr (array-like): True Positive Rate values.
+        auc_scores (float): Area Under the ROC Curve (AUC) score.
+    """
+
     display = RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=auc_scores,
 
                                   estimator_name='example estimator')
@@ -40,6 +61,13 @@ def plot_roc_curve(fpr, tpr, auc_scores):
 
 # the following function was taken from the course's LIF notebook
 def plot_network_activity(voltage, spikes, name=None):
+    """
+    Plots the network activity of neurons.
+    Parameters:
+        voltage (numpy.ndarray): 2D array representing the voltage activity of neurons.
+        spikes (numpy.ndarray): 2D array representing the firing activity of neurons.
+        name (str, optional): Name of the plot (default: None).
+    """
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
     if name is not None:
         fig.suptitle(name, fontsize=16)

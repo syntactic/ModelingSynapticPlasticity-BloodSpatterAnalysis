@@ -4,6 +4,19 @@ import torch as th
 import snntorch as snn
 
 class PyTorchCNN(nn.Module):
+    """
+    PyTorchCNN is a convolutional neural network model implemented using PyTorch.
+    Parameters:
+      using_mnist (bool): Flag indicating whether the model is being used for MNIST dataset or not.
+    Attributes:
+      num_classes (int): Number of classes in the output layer.
+      fully_connected_input_size (int): Size of the input to the fully connected layer.
+      conv1 (nn.Conv2d): First convolutional layer.
+      pool (nn.MaxPool2d): Max pooling layer.
+      conv2 (nn.Conv2d): Second convolutional layer.
+      fc1 (nn.Linear): First fully connected layer.
+      fc2 (nn.Linear): Second fully connected layer.
+    """
     def __init__(self, using_mnist=False):
         self.using_mnist = using_mnist
         if using_mnist:
@@ -34,6 +47,18 @@ class PyTorchCNN(nn.Module):
         return x
     
 class SpikingCNN(PyTorchCNN):
+    """
+    A class representing a spiking CNN model.
+    Parameters:
+      beta (float, optional): The membrane potential decay rate. Defaults to 0.8.
+      num_steps (int, optional): The number of time steps for the spiking dynamics. Defaults to 10.
+      **kwargs: Additional keyword arguments to be passed to the base class constructor.
+    Attributes:
+      lif1 (snn.Leaky): The first leaky integrate-and-fire (LIF) neuron layer.
+      lif2 (snn.Leaky): The second leaky integrate-and-fire (LIF) neuron layer.
+      lif3 (snn.LeakyParallel): The third leaky integrate-and-fire (LIF) neuron layer.
+      lif4 (snn.LeakyParallel): The fourth leaky integrate-and-fire (LIF) neuron layer.
+    """
     def __init__(self, beta=0.8, num_steps=10, **kwargs):
         self.num_steps = num_steps
         super().__init__(**kwargs)
@@ -68,6 +93,13 @@ class SpikingCNN(PyTorchCNN):
         return th.stack(spk4_rec, dim=0), th.stack(mem4_rec, dim=0)
     
 class SpikingCNNSerial(SpikingCNN):
+    """
+    A class representing a non-parallel spiking CNN model.
+    Args:
+      **kwargs: Additional keyword arguments for the parent class.
+        beta (float): The membrane potential decay rate.
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.lif3 = snn.Leaky(beta=kwargs['beta'])

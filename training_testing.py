@@ -13,6 +13,16 @@ import copy
 logger = logging.getLogger('MSP_Project')
 
 def print_batch_accuracy(model, data, targets, train=False, spiking=True):
+    """
+    Calculate and print the accuracy of a model on a single minibatch of data.
+    Parameters:
+      model (nn.Module): The neural network model.
+      data (torch.Tensor): The input data.
+      targets (torch.Tensor): The target labels.
+      train (bool, optional): Whether the function is called during training. Default is False.
+      spiking (bool, optional): Whether the model uses spiking neurons. Default is True.
+    """
+    
     if spiking:
         output, _ = model(data)
         _, idx = output.sum(dim=0).max(1)
@@ -27,10 +37,12 @@ def print_batch_accuracy(model, data, targets, train=False, spiking=True):
         logger.debug(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
 
 def reset_weights(model, verbose=False):
-  '''
-    Try resetting model weights to avoid
-    weight leakage.
-  '''
+  """
+  Reset the weights of a model to avoid weight leakage.
+  Parameters:
+    model (nn.Module): The model whose weights need to be reset.
+    verbose (bool, optional): Whether to print debug information. Defaults to False.
+  """
   for layer in model.children():
     if hasattr(layer, 'reset_parameters'):
         if verbose:
@@ -39,6 +51,21 @@ def reset_weights(model, verbose=False):
 
 # this function is based on https://github.com/christianversloot/machine-learning-articles/blob/main/how-to-use-k-fold-cross-validation-with-pytorch.md
 def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, batch_size=16, verbose=False):
+  """
+  Perform k-fold cross validation on a given dataset using a specified model.
+  Parameters:
+    dataset (torch.utils.data.Dataset): The dataset to perform cross validation on.
+    model (torch.nn.Module): The model to evaluate during cross validation.
+    k (int, optional): The number of folds for cross validation. Default is 10.
+    num_epochs (int, optional): The number of epochs to train the model for each fold. Default is 5.
+    optimizer (torch.optim.Optimizer, optional): The optimizer to use for training the model. If None, Adam optimizer will be used. Default is None.
+    batch_size (int, optional): The batch size for training and testing. Default is 16.
+    verbose (bool, optional): Whether to print additional information during training and testing. Default is False.
+  Returns:
+    average (float): The average accuracy across all folds.
+    loss_record (list): A list of training losses for each fold.
+  """
+
   spiking = is_spiking(model)
   if spiking:
     loss_function = ce_rate_loss()
@@ -175,6 +202,19 @@ def k_fold_cross_validation(dataset, model, k=10, num_epochs=5, optimizer=None, 
   return average, loss_record
 
 def hyperparameter_search(train_set, using_mnist=False, spiking_model=True, num_epochs=5, batch_size=16, k=10):
+    """
+    Perform hyperparameter search for training and testing a model.
+    Parameters:
+      train_set (Dataset): The training dataset.
+      using_mnist (bool, optional): Whether to use MNIST dataset. Defaults to False.
+      spiking_model (bool, optional): Whether to use spiking model. Defaults to True.
+      num_epochs (int, optional): Number of training epochs. Defaults to 5.
+      batch_size (int, optional): Batch size for training. Defaults to 16.
+      k (int, optional): Number of folds for k-fold cross validation. Defaults to 10.
+    Returns:
+      tuple: A tuple containing the best hyperparameters, best accuracy, loss record of best models, and the best model.
+    """
+    
     learning_rates = [1e-3, 1e-4, 1e-5]
     weight_decays = [0, 1e-3, 1e-4]
 
@@ -215,6 +255,20 @@ def hyperparameter_search(train_set, using_mnist=False, spiking_model=True, num_
     return best_hyperparameters, best_accuracy, best_models_loss_record, best_model
 
 def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_size=16, verbose=False):
+    """
+    Trains and tests a given model using the specified optimizer, training set, and test set.
+    Parameters:
+      model (torch.nn.Module): The model to be trained and tested.
+      optimizer (torch.optim.Optimizer): The optimizer used for training the model.
+      train_set (torch.utils.data.Dataset): The training dataset.
+      test_set (torch.utils.data.Dataset): The test dataset.
+      num_epochs (int, optional): The number of epochs to train the model (default is 5).
+      batch_size (int, optional): The batch size used for training and testing (default is 16).
+      verbose (bool, optional): Whether to print verbose training and testing information (default is False).
+    Returns:
+      tuple: A tuple containing the training losses, training accuracies, testing losses, and testing accuracies.
+    """
+    
     spiking = is_spiking(model)
     if spiking:
         loss_function = ce_rate_loss()
@@ -292,6 +346,19 @@ def train_and_test(model, optimizer, train_set, test_set, num_epochs=5, batch_si
     return training_losses, training_accuracies, testing_losses, testing_accuracies
 
 def get_roc_metrics(model, test_data, batch_size=16):
+    """
+    Calculates the Receiver Operating Characteristic (ROC) metrics for a given model and test data.
+    Parameters:
+      model (torch.nn.Module): The model to evaluate.
+      test_data (torch.utils.data.Dataset): The test data.
+      batch_size (int, optional): The batch size for data loading. Default is 16.
+    Returns:
+      fpr (numpy.ndarray): The False Positive Rate values.
+      tpr (numpy.ndarray): The True Positive Rate values.
+      thresholds (numpy.ndarray): The thresholds values.
+      auc (float): The Area Under the ROC Curve (AUC) value.
+    """
+    
     spiking = is_spiking
     model.eval()
     with th.no_grad():
@@ -321,6 +388,17 @@ def get_roc_metrics(model, test_data, batch_size=16):
         return fpr, tpr, thresholds, auc
     
 def run_spiking_inference(model, data_point):
+    """
+    Run spiking inference on a given model and data point.
+    Parameters:
+      model (torch.nn.Module): The spiking model to be evaluated.
+      data_point (torch.Tensor): The input data point for inference.
+    Returns:
+      Tuple[int, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing the predicted class label,
+      spike recordings for the fourth layer (spk_rec4), membrane potential recordings for the fourth layer (mem_rec_4),
+      spike recordings for the third layer (spk_rec_3), and membrane potential recordings for the third layer (mem_rec_3).
+    """
+    
     model.eval()
     with th.no_grad():
         data_point = data_point.to(device)

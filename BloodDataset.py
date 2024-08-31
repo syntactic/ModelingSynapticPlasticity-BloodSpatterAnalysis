@@ -1,6 +1,23 @@
 from torchvision.datasets import ImageFolder
 
 class BloodDataset(ImageFolder):
+    """
+    A custom dataset class for handling blood images.
+
+    Args:
+        root (str): The root directory of the dataset.
+        init_transform (callable, optional): A function to apply initial transformation to the data. Defaults to None.
+        transform (callable, optional): A function to apply transformation to the data. Defaults to identity function.
+        augmentations (list, optional): A list of augmentation functions to apply to the data. Defaults to an empty list.
+
+    Attributes:
+        augmentations (list): A list of augmentation functions to apply to the data.
+        augmentation_applied (bool): A flag indicating whether augmentations have been applied to the dataset.
+
+    Methods:
+        from_subset(subset): Creates a new BloodDataset object from a subset of the current dataset.
+        apply_augmentations(): Applies augmentations to the dataset.
+    """
     def __init__(self, root, init_transform=None, transform=lambda x : x, augmentations=[]):
         super().__init__(root, transform=transform)
         if init_transform is not None:

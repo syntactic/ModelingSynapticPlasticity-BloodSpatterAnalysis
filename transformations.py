@@ -19,6 +19,14 @@ preprocessing_no_normalize = transforms.Compose([
 ])
 
 def generate_preprocessing_transforms(mean, std):
+    """
+    Generate a sequence of image preprocessing transforms.
+    Parameters:
+        mean (float or sequence): Mean values for normalization.
+        std (float or sequence): Standard deviation values for normalization.
+    Returns:
+        torchvision.transforms.Compose: A composed sequence of transforms.
+    """
     logger.debug("Using mean and std: " + str(mean) + ", " + str(std))
     return transforms.Compose([
         transforms.Grayscale(num_output_channels=1),

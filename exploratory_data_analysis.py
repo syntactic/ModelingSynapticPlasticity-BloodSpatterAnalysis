@@ -9,6 +9,13 @@ logger = logging.getLogger('MSP_Project')
 
 # Function to show an image
 def imshow(img, title):
+    """
+    Display an image using matplotlib.
+    Parameters:
+    img (torch.Tensor): The image tensor to be displayed.
+    title (str): The title of the image.
+    """
+
     img = img / 2 + 0.5  # unnormalize
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
@@ -17,6 +24,12 @@ def imshow(img, title):
 
 # Calculate the average image of each class
 def calculate_class_average(dataset):
+    """
+    Calculate and plot the average image for each class in the dataset.
+    Args:
+        dataset (list): A list of tuples containing image and label pairs.
+    """
+
     classes = get_classes(dataset)
     class_sums = [0] * len(classes)
     class_counts = [0] * len(classes)
@@ -35,6 +48,13 @@ def calculate_class_average(dataset):
     plt.show()
 
 def run_eda(dataset):
+    """
+    Perform exploratory data analysis on the given dataset. This includes visualizing images 
+    and plotting class distributions.
+    Args:
+        dataset: The dataset to be analyzed.
+    """
+
     # Define DataLoader for EDA
     eda_loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
@@ -49,9 +69,6 @@ def run_eda(dataset):
     class_counts = get_class_counts(dataset)
     classes_sorted = get_classes(dataset)
     logger.debug("Dataset classes:" + str(classes_sorted))
-    # get class counts sorted by class name numerically
-    #classes_sorted = sorted(class_counts.keys(), key=lambda x: int(x))
-    #class_counts = [class_counts[cls] for cls in classes_sorted]
     logger.debug("Class Counts: " + str(class_counts))
     
     plt.bar(classes_sorted, [class_counts[cls] for cls in classes_sorted])
